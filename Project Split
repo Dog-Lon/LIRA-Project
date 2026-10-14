@@ -1,0 +1,5 @@
+In order to achieve the goal of LIRA, which is to send data bits across different planetoids and successfully interpret them to send a specific delivery back, there are several challenges that need to be noted.
+To keep relative problems organized, I have separated them into 3 categories.
+  - Flowcharts and Interactions
+  - Oxygen Not Included's Logical Element Build
+  - Oxygen Not Included's Physical Limitations
