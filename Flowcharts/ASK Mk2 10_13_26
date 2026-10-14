@@ -1,0 +1,72 @@
+                                      ASK Redesign/Mk.II
+
+Objective: Redesign the ASK Flowchart to properly accomodate for unidentified and uncompensated fall-through problems found
+            in the first ASK Flowchart, such as sending and receiving ACKs, defining what Masters are and do
+
+Why:  The first flowchart did what it was meant to do--get a general idea of how the process would look like. Since we
+      ideally want this to look at "point-to-point" as possible, I figured the asking planetoid would hold most of the sending
+      logic and thus would be a good point to start at for the flowcharts. The other flowcharts will revolve around the ASKs.
+
+The original design: [Insert picture here]
+
+
+Pros:  First design, gives us something to work with and plan from/to.
+
+Flaws:  Glaring flaws.
+        - What if request word is lost? (how to confirm?)
+        - Master 2 is a local escape but doesn't let Main know it escaped
+        - If we send ACK after payload, but ACK is lost, we exit before Main knows
+            payload was received
+
+
+The new design: [Insert picture here]
+
+
+Pros:  - Accomodates for time slotting
+          - Should disallow multiple requests from confusing Relays or Main
+       - The first ASK flowchart assumed if not Master 1 and not suppressed, then we could
+          Ask and then go ahead and send addresses with no affirmation. ASK Mk.II accomodates for the
+          option of Main sending an ACK and only then we send address
+      - Mk.II's request word waits for a compared request word to make sure the correct items were ordered
+      - Master 2 sends an ACK to Main to communicate that it escaped the transaction
+      - Experimentally, States/ACKs 0-5 are listed on the left side of the flowchart
+          - In order to create a method of avoiding mismatched states, I proposed that instead of ACKs
+              traditionally being a 1/0, we make it based on the state of the ACKs, effectively separating
+              ACKs from the main data line, but linking Main and ASK's current states together
+          - Using this idea, we might use a 4 bit number with a combination for any particular state and if
+              and ACK was receieved (so the current ACK state that is misaligned with the other side), we
+              might send back a special code 0xF, until the correct ACK is received, that we already moved
+              forward in states
+
+Flaws:  - The flowchart is much longer
+            - While expected, this means a lot more chance for error, meaning ACKs might not be enough
+        - Currently, the request word is ~20 bits long, which describes exactly what category and selection
+            we want to be sent (ie. bits 19 downto 16 describe the metals where 0x0 is NONE, 0x1 is Steel,
+            0x5 is Aluminum, and so on)
+            - The length of this single word transmission can easily be lost or be corrupted in transit
+            - Testing and other ideas to be explored
+
+Important Ideas and Questions: 
+        - ACK system redesign
+            - If we want to use a separate line for ACKs, we can have much greater complexity
+            - Con is having more footprint, but it separates confirmation from the data line
+        - Investigating a request resize to make short or less potentially volatile
+        - Time-Dependant Scheduling
+            - Restricting planetoid request to a slotted time to avoid mixed signals
+        - Relay design
+            - Although the "relays" have been put off for now, it seems they'll actually carry
+                a massive role in processing, obviously relaying, and sending correct signals
+            - Potentially, we could set relay stations' clocks to be only triggered when data is sent
+                to it
+                - Doing this means we need more bits to describe which relay (say, 3 bits for 8 relays,
+                    unlikely, but relays could connect to relays, etc), then the 4 bits for the planetoid
+                    address, which increases the complexity of ground and space logics
+            - To be considered, we could have OUTGOING specific stations and  INCOMING specific stations
+                - This would clear comms for to/from signals, but requires twice as much in terms of
+                    launching another rocket, as well as changing some signal assignment for bit addressing
+                - More research needed
+
+Conclusion:  The redesign flowchart is still a massive upgrade from the first. Although it is clear there's still many problems to be solved, it gave me a clearer
+              picture of what I want or need for the protocol to achieve to be considered successful.(?) xxx cont.
+
+References:  
