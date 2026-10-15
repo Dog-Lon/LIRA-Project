@@ -1,0 +1,127 @@
+                        Logic Element Build Experiments 10/14/26
+
+Objective: Start to understand how to further develop logic techniques and builds. Achieve a first mental idea of what the final build MIGHT look like as well as a way
+            to start develop the logic/flowcharts to describe that.
+
+Why:  Ideally, we'll be using a lot of different logic elements, but not all of them will be directly available to us without needing to
+        creating our own version of them, namely being registers and otherwise sequential logic. Along with the objective here, the goal is also to 
+        create a first look at what our final ASK might look like. Reminder
+
+
+Base Logic Component Overview in Oxygen Not Included ----
+
+To start, Oxygen Not Included has several of the basic logic elements immediately available to build. These elements include 
+  - AND, OR, NOT, XOR
+  - Single Automation Wire/Bridges
+  - 4-Bit Automation Wire/Bridges
+
+It also includes other more advanced logic elements such as 
+  - MUX, DMUX, Counters, and most notably, SR Latches, among other things
+
+We also have a variety of sensors to use, but the most immediately important one for us is the timer sensor which can function as a clock.
+  The timer sensor can have a minimum phase of 0.1s for the green phase and red phase, meaning the smallest clock takes at least 0.2s or otherwise
+  runs at max frequency of 5 Hz.
+
+Flip-Flop Attempt 1 ----
+
+* Generally speaking, a flip-flop is made of two latches. I didn't realize that I did not make a flip-flop like I was trying to, although I did make the
+    SR latch into a D latch, which is also required for the ideal design.
+
+Now, because we don't have flip-flops immediately available to us, we'll need to make them ourselves. A flip-flop is otherwise made from two latches* and
+  ideally in our case needs to be clocked as well. Luckily and unluckily, we have up to the SR latch (known as memory toggle in-game) which means we save on
+  footprint since we don't need to make a SR latch ourselves, but we still need to accomodate for the extra space taken for making a flip-flop. 
+
+The first iteration of trying to create a flip-flop lead to this design below
+
+[below should be the first design, single]
+
+[design, full]
+
+[design, wiring]
+
+which proves that it is possible to make the SR latch into a D flip-flop* as well as make it clock triggered. By connecting the S input and NOT'ing the S input
+  signal into the R, we effectively create a D latch. Add 2 AND gates whose second input of both are connected to the clock, and sending our input into the first
+  AND's first input as well as NOT'ing that signal before also sending it to the second AND's first input, we managed to create a clock triggered flip-flop.*
+  Scaled up to a 4 bit level, this design might look something like this below,
+
+[below should be the first design, multiple]
+
+[design, full]
+
+[design wiring]
+
+
+Address Generation ----
+
+As discussed previously, each planetoid needs to have its own address, but how does it generate it's own address? The most obvious solution to me was having a static
+  number pushed to registers before sending it forward in the process. I experimented with a few ways that are listed below
+
+-  Shift Register Idea for Address
+  - Shift register would sucessfully push bits serially
+  - We could load the bits instantly once we finish cycling through the known code
+
+- Counter Based FSM
+  - While not a big FSM, the counter sends a pulse everytime it reaches it's desired count. We could use this to literally count both time passed and how many clock cycles until we want to
+      reload some logic array
+  - The counter serves as a clock divider (in a sense), a timer, a state monitor(?)
+
+Using the idea that made the D flip-flops*, I did manage to make a shift register by instead linking the Q's all the previous flip-flip* to the next.
+
+[design, single]
+
+[design, full]
+
+[design, wiring]
+
+While experimenting with this shift register while at the max clock frequency, I actually ran into several timing violations and errors. For one, the design obviously requires the 
+  clock to be able to activate it's ANDs with a given input as well. While that's fine, I actually did not realize that what I made earlier was NOT a D flip-flop* but more of a clock-sensitive 
+  D-latch. The next iteration seeks to resolve this but for now, this told us a lot, design-wise. The next thing I discovered was the propagation delay between the latches. As we know, increasing 
+  the amount of logic a circuit needs to run also increases the time it takes for the logic to pass through it. With that being said, 0.1s/0.1s was actually found to be too fast for two reasons.
+
+The first reason is that the circuit, while most times works, might glitch or pass a new state before the last latch was done processing a bit. Although its rudimentary logic, everything at the small
+  scale is amplified at larger scales. The second reason this clock speed was too fast is because of how Oxygen Not Included works. ONI is a game, and in the game, it SIMULATES logic. What I mean by that
+  is that we can create logic to stunning accuracy, but we start to lose entire rises and falls of the clock if the peroid is too low. Through testing, I found that 0.1s/0.3 seems to work fine as 0.1s-0.3s
+  seems to be easily enough to pass a signal and capture it (remember that we accidently created a D Latch as opposed to D Flip-flops) while +0.3s gave enough time for the propegation delay to process
+  the bits as well as sned it to the next latch. This otherwise caps our clock speed to 0.4s periods or 2.5 Hz.
+
+The second idea to generate an address is actually much simplier and clearer, but utilizaes a 4-bit ribbon as opposed to the standard automation wire. The process was relatively the same--load a static
+  address into something that would hold it and then send it forward. This time, instead of creating a shift register, I used 4 ANDs and 4 switches that correlate to the planetoid's address (think 0001.)
+  We also utilized a counter to measure the state we were in via clock pulses, although that needs more tweaking and experimenting. The biggest difference was that instead of pushing a serial code through
+  flip-flops (think, push 0, push 1, push 0, and so on), we used ribbon writers as the outputs to a 4-bit ribbon respectively. This actually cut down on a lot of space and wiring/complexity overhead so 
+  using parallel wiring or switching most modules to work with the ribbons might be the move. Either way, the prototype design is shown below
+
+[design]
+
+[design, full]
+
+[design, full]
+
+Pros: ?
+
+Flaws: ?
+
+More testing will be required to figure out a method of generating and passing the address, but there were several problems and potential solutions that were raised during experimentation.
+
+
+Important Ideas and Questions:
+  - Parallel Buses for a planetoid's main line
+    - This should significantly cut down on the footprint of the circuits
+    - We will need a SERDES to convert between transmission and received data
+  - The counter as a lot of potential uses but need to be investigated more
+  - Since the simulation is bound to be prone to bugs, edge cases, recovery, and lost signals are more
+      prominents than previously accounted for
+  - With the concern of footprint and loading parallel buses to save space as well as standardization across words,
+      we arrive at the idea of a general register pack
+    - Ideally, we could create register for every logic block that needs it, but instead of that, we could actually
+        create a stack via register block
+      - There are 2 ways to go about it
+        - 2-Way Shift Registers
+        - SP and Register Block w/ selection via multiplexers
+    - Having a dedicated register block might actually make sending and receiving addresses much less dangerous
+        as well as more efficient and able to store more memory than thought of before
+    - Development, flowchart usage, and experimentation required
+      - This is a promising aspect
+
+Conclusion:
+
+References:
